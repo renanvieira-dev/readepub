@@ -48,6 +48,50 @@ export default function EpubViewer({
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Injeção de estilos dinâmica com verificação estrita para evitar erros do TypeScript
+  const injectStylesIntoContents = (contents: any) => {
+    if (!contents || !contents.document) return;
+    const doc = contents.document as Document;
+
+    let styleEl = doc.getElementById("readepub-dynamic-styles") as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = doc.createElement("style");
+      styleEl.id = "readepub-dynamic-styles";
+      if (doc.head) {
+        doc.head.appendChild(styleEl);
+      } else if (doc.body) {
+        doc.body.appendChild(styleEl);
+      }
+    }
+
+    if (!styleEl) return;
+
+    const theme = THEME_COLORS[settings.theme];
+    const margin = settings.marginHorizontal ?? 8;
+
+    styleEl.innerHTML = `
+      html, body {
+        background-color: ${theme.bg} !important;
+        color: ${theme.text} !important;
+        font-family: "${settings.fontFamily}", serif !important;
+        font-size: ${settings.fontSize}px !important;
+        line-height: ${settings.lineHeight} !important;
+        text-align: ${settings.textAlign} !important;
+        padding-left: ${margin}% !important;
+        padding-right: ${margin}% !important;
+        box-sizing: border-box !important;
+      }
+      p, div, span, li, a {
+        font-family: "${settings.fontFamily}", serif !important;
+        line-height: ${settings.lineHeight} !important;
+      }
+      p {
+        margin-bottom: 1.2em !important;
+        text-align: ${settings.textAlign} !important;
+      }
+    `;
+  };
+
   useEffect(() => {
     if (!viewerRef.current || !data) return;
 
@@ -71,6 +115,8 @@ export default function EpubViewer({
       Object.values(GOOGLE_FONTS_URLS).forEach((url) => {
         contents.addStylesheet(url);
       });
+
+      injectStylesIntoContents(contents);
 
       const doc = contents.document;
       doc.addEventListener("click", (e: MouseEvent) => {
@@ -134,7 +180,7 @@ export default function EpubViewer({
     };
   }, [data, bookKey]);
 
-  // Aplicação dinâmica de fontes, tamanho, entrelinhas, margens e alinhamento
+  // Atualização em tempo real quando o utilizador altera margens, entrelinhas, fonte ou tema
   useEffect(() => {
     const rendition = internalRenditionRef.current;
     if (!rendition) return;
@@ -150,14 +196,26 @@ export default function EpubViewer({
         "font-size": `${settings.fontSize}px !important`,
         "line-height": `${settings.lineHeight} !important`,
         "text-align": `${settings.textAlign} !important`,
-        padding: `0 ${margin}% !important`,
+        "padding-left": `${margin}% !important`,
+        "padding-right": `${margin}% !important`,
+        "box-sizing": "border-box !important",
       },
       p: {
         "font-family": `"${settings.fontFamily}", serif !important`,
         "line-height": `${settings.lineHeight} !important`,
         "margin-bottom": "1.2em !important",
+        "text-align": `${settings.textAlign} !important`,
       },
     });
+
+    try {
+      const contentsList = (rendition as any).getContents?.() || [];
+      contentsList.forEach((contents: any) => {
+        injectStylesIntoContents(contents);
+      });
+    } catch (e) {
+      console.warn("Não foi possível atualizar estilos diretamente no iframe:", e);
+    }
   }, [settings]);
 
   const addHighlight = (color: string) => {
