@@ -43,7 +43,7 @@ export default function GamificationDashboard({
       const books = await getAllBooksFromLibrary();
       setLibraryBooks(books);
     } catch (e) {
-      console.error("Erro ao carregar estante:", e);
+      console.error("Erro ao carregar a estante:", e);
     }
   };
 
@@ -62,7 +62,7 @@ export default function GamificationDashboard({
 
   const unlockedCount = trophies.filter((t) => t.unlocked).length;
 
-  // Ao selecionar um arquivo novo (.epub ou .pdf)
+  // Processamento de upload de novo livro (.epub ou .pdf)
   const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -71,7 +71,7 @@ export default function GamificationDashboard({
     const isEpub = file.name.toLowerCase().endsWith(".epub");
 
     if (!isPdf && !isEpub) {
-      alert("Por favor, selecione um arquivo .epub ou .pdf válido.");
+      alert("Por favor, selecione um ficheiro .epub ou .pdf válido.");
       return;
     }
 
@@ -111,10 +111,10 @@ export default function GamificationDashboard({
     <div className="w-full min-h-screen bg-[#1B2632] text-[#EEE9DF] flex flex-col items-center">
       <div className="w-full max-w-5xl px-4 sm:px-8 py-8 flex flex-col gap-8 pb-28">
         
-        {/* Cabeçalho */}
+        {/* Cabeçalho Superior */}
         <header className="flex items-center justify-between border-b border-[#C9C1B1]/20 pb-5">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#FFB162]/15 border border-[#FFB162]/30 flex items-center justify-center text-[#FFB162] shadow-lg shadow-[#FFB162]/5">
+            <div className="w-11 h-11 rounded-2xl bg-[#FFB162]/15 border border-[#FFB162]/30 flex items-center justify-center text-[#FFB162] shadow-lg shadow-[#FFB162]/5 shrink-0">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
@@ -130,20 +130,20 @@ export default function GamificationDashboard({
 
           <button
             onClick={onLogout}
-            className="flex items-center gap-2 text-xs text-[#C9C1B1] hover:text-[#EEE9DF] transition-colors bg-[#2C3B4D] border border-[#C9C1B1]/20 px-3.5 py-2 rounded-xl cursor-pointer hover:border-[#FFB162]/50"
+            className="flex items-center gap-2 text-xs text-[#C9C1B1] hover:text-[#EEE9DF] transition-colors bg-[#2C3B4D] border border-[#C9C1B1]/20 px-3.5 py-2 rounded-xl cursor-pointer hover:border-[#FFB162]/50 shrink-0"
           >
             <LogOut className="w-4 h-4" />
             <span>Sair</span>
           </button>
         </header>
 
-        {/* RANK E BARRA INFINITA */}
-        <section className="relative overflow-hidden rounded-3xl border border-[#C9C1B1]/20 bg-gradient-to-b from-[#2C3B4D] to-[#1B2632] p-6 sm:p-8 shadow-xl">
+        {/* RANK E BARRA DE PROGRESSO INFINITA */}
+        <section className="relative overflow-hidden rounded-3xl border border-[#C9C1B1]/20 bg-linear-to-b from-[#2C3B4D] to-[#1B2632] p-6 sm:p-8 shadow-xl">
           <div className="absolute top-0 right-0 -mr-16 -mt-16 w-56 h-56 bg-[#FFB162]/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
             <div className="flex items-center gap-4">
-              <div className="text-4xl p-2.5 rounded-2xl bg-[#1B2632] border border-[#C9C1B1]/20 flex items-center justify-center">
+              <div className="text-4xl p-2.5 rounded-2xl bg-[#1B2632] border border-[#C9C1B1]/20 flex items-center justify-center shrink-0">
                 {rank.badge}
               </div>
               <div className="flex flex-col">
@@ -155,7 +155,7 @@ export default function GamificationDashboard({
                     {rank.totalXp} XP Total
                   </span>
                 </div>
-                <h2 className="text-2xl font-black text-[#EEE9DF] tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-black text-[#EEE9DF] tracking-tight">
                   {rank.title}
                 </h2>
               </div>
@@ -175,7 +175,7 @@ export default function GamificationDashboard({
             <div className="w-full h-3.5 bg-[#1B2632] rounded-full overflow-hidden p-0.5 border border-[#C9C1B1]/20">
               <div
                 style={{ width: `${Math.max(4, rank.progressPercent)}%` }}
-                className="h-full rounded-full bg-gradient-to-r from-[#A35139] to-[#FFB162] shadow-md shadow-[#FFB162]/30 transition-all duration-700 ease-out"
+                className="h-full rounded-full bg-linear-to-r from-[#A35139] to-[#FFB162] shadow-md shadow-[#FFB162]/30 transition-all duration-700 ease-out"
               />
             </div>
 
@@ -186,7 +186,7 @@ export default function GamificationDashboard({
           </div>
         </section>
 
-        {/* HÁBITOS (STREAK & META) */}
+        {/* CARTÕES DE HÁBITOS (STREAK & META) */}
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-[#2C3B4D] border border-[#C9C1B1]/20 p-5 rounded-2xl flex items-center justify-between shadow-lg">
             <div className="flex flex-col">
@@ -216,7 +216,7 @@ export default function GamificationDashboard({
                 <span className="text-xs font-normal text-[#C9C1B1]">min</span>
               </div>
               <p className="text-[10px] text-[#C9C1B1]/80 mt-1">
-                Garante bônus diário de XP ao completar
+                Garante bónus diário de XP ao completar
               </p>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-[#FFB162]/10 border border-[#FFB162]/20 flex items-center justify-center text-[#FFB162] shrink-0">
@@ -225,21 +225,29 @@ export default function GamificationDashboard({
           </div>
         </section>
 
-        {/* NOVA SEÇÃO: MINHA ESTANTE DE LIVROS (GALERIA PERSISTENTE) */}
+        {/* MINHA ESTANTE DE LIVROS */}
         <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BookMarked className="w-5 h-5 text-[#FFB162]" />
-              <h3 className="text-lg font-bold text-[#EEE9DF]">Minha Estante de Livros</h3>
-              <span className="text-xs font-mono text-[#C9C1B1]">
-                ({libraryBooks.length} {libraryBooks.length === 1 ? "livro" : "livros"})
-              </span>
+          <div className="flex items-center justify-between gap-2 sm:gap-4 w-full">
+            {/* Ícone + Título + Badge de contagem protegidos contra quebra */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-[#FFB162]/10 border border-[#FFB162]/20 flex items-center justify-center text-[#FFB162] shrink-0">
+                <BookMarked className="w-4 h-4" />
+              </div>
+
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="text-base sm:text-lg font-bold text-[#EEE9DF] whitespace-nowrap">
+                  Minha Estante
+                </h3>
+                <span className="text-[11px] font-mono font-medium text-[#C9C1B1] bg-[#1B2632] px-2 py-0.5 rounded-full border border-[#C9C1B1]/20 whitespace-nowrap shrink-0">
+                  {libraryBooks.length} {libraryBooks.length === 1 ? "livro" : "livros"}
+                </span>
+              </div>
             </div>
 
             {/* Botão de Adicionar Livro */}
-            <label className="flex items-center gap-2 px-4 py-2 bg-[#FFB162] hover:bg-[#FFB162]/90 text-[#1B2632] font-bold rounded-xl cursor-pointer active:scale-95 transition-all text-xs shadow-md">
-              <Upload className="w-4 h-4" />
-              <span>{isUploading ? "Adicionando..." : "Adicionar Livro"}</span>
+            <label className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[#FFB162] hover:bg-[#FFB162]/90 text-[#1B2632] font-bold rounded-xl cursor-pointer active:scale-95 transition-all text-xs shadow-md shrink-0 whitespace-nowrap">
+              <Upload className="w-3.5 h-3.5 shrink-0" />
+              <span>{isUploading ? "A carregar..." : "Adicionar Livro"}</span>
               <input
                 type="file"
                 accept=".epub,.pdf"
@@ -253,9 +261,9 @@ export default function GamificationDashboard({
           {libraryBooks.length === 0 ? (
             <div className="bg-[#2C3B4D]/60 border border-dashed border-[#C9C1B1]/30 rounded-3xl p-8 flex flex-col items-center justify-center text-center gap-3">
               <BookOpen className="w-12 h-12 text-[#C9C1B1]/40" />
-              <p className="text-sm font-semibold text-[#EEE9DF]">Sua estante ainda está vazia</p>
+              <p className="text-sm font-semibold text-[#EEE9DF]">A sua estante ainda está vazia</p>
               <p className="text-xs text-[#C9C1B1] max-w-sm">
-                Adicione arquivos <strong>.epub</strong> ou <strong>.pdf</strong> para montar sua biblioteca offline com progresso gravado.
+                Adicione ficheiros <strong>.epub</strong> ou <strong>.pdf</strong> para montar a sua biblioteca offline com o progresso guardado.
               </p>
             </div>
           ) : (
@@ -304,7 +312,7 @@ export default function GamificationDashboard({
                       <div className="w-full h-2 bg-[#1B2632] rounded-full overflow-hidden p-0.5 border border-[#C9C1B1]/20">
                         <div
                           style={{ width: `${Math.max(3, b.progressPercent || 0)}%` }}
-                          className="h-full rounded-full bg-gradient-to-r from-[#A35139] to-[#FFB162]"
+                          className="h-full rounded-full bg-linear-to-r from-[#A35139] to-[#FFB162]"
                         />
                       </div>
 
@@ -320,7 +328,7 @@ export default function GamificationDashboard({
           )}
         </section>
 
-        {/* GALERIA DE TROFÉUS */}
+        {/* GALERIA INFINITA DE TROFÉUS */}
         <section className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -365,7 +373,7 @@ export default function GamificationDashboard({
                 key={trophy.id}
                 className={`relative p-4 rounded-2xl border transition-all flex flex-col items-center text-center gap-2 ${
                   trophy.unlocked
-                    ? "bg-gradient-to-b from-[#2C3B4D] to-[#1B2632] border-[#FFB162]/40 shadow-lg"
+                    ? "bg-linear-to-b from-[#2C3B4D] to-[#1B2632] border-[#FFB162]/40 shadow-lg"
                     : "bg-[#1B2632]/60 border-[#C9C1B1]/10 opacity-30 grayscale"
                 }`}
               >
