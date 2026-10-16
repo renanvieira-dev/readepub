@@ -227,25 +227,19 @@ export default function GamificationDashboard({
 
         {/* MINHA ESTANTE DE LIVROS */}
         <section className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-2 sm:gap-4 w-full">
-            {/* Ícone + Título + Badge de contagem protegidos contra quebra */}
+          {/* Cabeçalho Limpo: apenas Título e Ação */}
+          <div className="flex items-center justify-between gap-3 w-full">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-[#FFB162]/10 border border-[#FFB162]/20 flex items-center justify-center text-[#FFB162] shrink-0">
                 <BookMarked className="w-4 h-4" />
               </div>
-
-              <div className="flex items-center gap-2 min-w-0">
-                <h3 className="text-base sm:text-lg font-bold text-[#EEE9DF] whitespace-nowrap">
-                  Minha Estante
-                </h3>
-                <span className="text-[11px] font-mono font-medium text-[#C9C1B1] bg-[#1B2632] px-2 py-0.5 rounded-full border border-[#C9C1B1]/20 whitespace-nowrap shrink-0">
-                  {libraryBooks.length} {libraryBooks.length === 1 ? "livro" : "livros"}
-                </span>
-              </div>
+              <h3 className="text-base sm:text-lg font-bold text-[#EEE9DF] whitespace-nowrap">
+                Minha Estante
+              </h3>
             </div>
 
             {/* Botão de Adicionar Livro */}
-            <label className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-[#FFB162] hover:bg-[#FFB162]/90 text-[#1B2632] font-bold rounded-xl cursor-pointer active:scale-95 transition-all text-xs shadow-md shrink-0 whitespace-nowrap">
+            <label className="flex items-center gap-1.5 px-3.5 sm:px-4 py-2 bg-[#FFB162] hover:bg-[#FFB162]/90 text-[#1B2632] font-bold rounded-xl cursor-pointer active:scale-95 transition-all text-xs shadow-md shrink-0 whitespace-nowrap">
               <Upload className="w-3.5 h-3.5 shrink-0" />
               <span>{isUploading ? "A carregar..." : "Adicionar Livro"}</span>
               <input
@@ -258,72 +252,83 @@ export default function GamificationDashboard({
             </label>
           </div>
 
+          {/* Área da Biblioteca (onde os livros ficam) com a quantidade integrada */}
           {libraryBooks.length === 0 ? (
             <div className="bg-[#2C3B4D]/60 border border-dashed border-[#C9C1B1]/30 rounded-3xl p-8 flex flex-col items-center justify-center text-center gap-3">
+              <span className="text-[11px] font-mono text-[#C9C1B1] bg-[#1B2632] px-3 py-1 rounded-full border border-[#C9C1B1]/20">
+                0 livros na biblioteca
+              </span>
               <BookOpen className="w-12 h-12 text-[#C9C1B1]/40" />
               <p className="text-sm font-semibold text-[#EEE9DF]">A sua estante ainda está vazia</p>
               <p className="text-xs text-[#C9C1B1] max-w-sm">
-                Adicione ficheiros <strong>.epub</strong> ou <strong>.pdf</strong> para montar a sua biblioteca offline com o progresso guardado.
+                Adicione ficheiros <strong>.epub</strong> ou <strong>.pdf</strong> para montar a sua coleção offline com o progresso guardado.
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {libraryBooks.map((b) => {
-                const pagesLeft = Math.max(0, b.totalPages - b.currentPage);
-                return (
-                  <div
-                    key={b.id}
-                    onClick={() => onOpenBook(b)}
-                    className="group relative bg-[#2C3B4D] hover:bg-[#2C3B4D]/90 border border-[#C9C1B1]/20 hover:border-[#FFB162]/50 p-5 rounded-2xl flex flex-col justify-between gap-4 cursor-pointer transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-[#1B2632] border border-[#C9C1B1]/20 flex items-center justify-center text-[#FFB162]">
-                          <BookOpen className="w-4 h-4" />
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs font-mono text-[#C9C1B1]">
+                  Coleção: <strong className="text-[#EEE9DF]">{libraryBooks.length}</strong> {libraryBooks.length === 1 ? "livro guardado" : "livros guardados"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {libraryBooks.map((b) => {
+                  const pagesLeft = Math.max(0, b.totalPages - b.currentPage);
+                  return (
+                    <div
+                      key={b.id}
+                      onClick={() => onOpenBook(b)}
+                      className="group relative bg-[#2C3B4D] hover:bg-[#2C3B4D]/90 border border-[#C9C1B1]/20 hover:border-[#FFB162]/50 p-5 rounded-2xl flex flex-col justify-between gap-4 cursor-pointer transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-[#1B2632] border border-[#C9C1B1]/20 flex items-center justify-center text-[#FFB162]">
+                            <BookOpen className="w-4 h-4" />
+                          </div>
+                          <span className="uppercase text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-[#1B2632] text-[#FFB162] border border-[#FFB162]/30">
+                            {b.type}
+                          </span>
                         </div>
-                        <span className="uppercase text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-[#1B2632] text-[#FFB162] border border-[#FFB162]/30">
-                          {b.type}
-                        </span>
+
+                        <button
+                          onClick={(e) => handleDeleteBook(e, b.id)}
+                          className="p-1.5 rounded-lg text-[#C9C1B1] hover:text-red-400 hover:bg-[#1B2632] transition-colors"
+                          title="Remover livro"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
 
-                      <button
-                        onClick={(e) => handleDeleteBook(e, b.id)}
-                        className="p-1.5 rounded-lg text-[#C9C1B1] hover:text-red-400 hover:bg-[#1B2632] transition-colors"
-                        title="Remover livro"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-bold text-[#EEE9DF] line-clamp-2 group-hover:text-[#FFB162] transition-colors">
-                        {b.name}
-                      </h4>
-                      <p className="text-[11px] font-mono text-[#C9C1B1] mt-1">
-                        Página {b.currentPage} de {b.totalPages || 1} • {b.progressPercent || 0}%
-                      </p>
-                      <p className="text-[10px] text-[#C9C1B1]/70">
-                        {pagesLeft === 0 ? "Leitura concluída 🎉" : `Faltam ${pagesLeft} páginas`}
-                      </p>
-                    </div>
-
-                    {/* Barra de Progresso do Livro */}
-                    <div className="flex flex-col gap-1.5">
-                      <div className="w-full h-2 bg-[#1B2632] rounded-full overflow-hidden p-0.5 border border-[#C9C1B1]/20">
-                        <div
-                          style={{ width: `${Math.max(3, b.progressPercent || 0)}%` }}
-                          className="h-full rounded-full bg-linear-to-r from-[#A35139] to-[#FFB162]"
-                        />
+                      <div>
+                        <h4 className="text-sm font-bold text-[#EEE9DF] line-clamp-2 group-hover:text-[#FFB162] transition-colors">
+                          {b.name}
+                        </h4>
+                        <p className="text-[11px] font-mono text-[#C9C1B1] mt-1">
+                          Página {b.currentPage} de {b.totalPages || 1} • {b.progressPercent || 0}%
+                        </p>
+                        <p className="text-[10px] text-[#C9C1B1]/70">
+                          {pagesLeft === 0 ? "Leitura concluída 🎉" : `Faltam ${pagesLeft} páginas`}
+                        </p>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs text-[#FFB162] font-semibold pt-1">
-                        <span>Continuar Leitura</span>
-                        <Play className="w-3.5 h-3.5 fill-current" />
+                      <div className="flex flex-col gap-1.5">
+                        <div className="w-full h-2 bg-[#1B2632] rounded-full overflow-hidden p-0.5 border border-[#C9C1B1]/20">
+                          <div
+                            style={{ width: `${Math.max(3, b.progressPercent || 0)}%` }}
+                            className="h-full rounded-full bg-gradient-to-r from-[#A35139] to-[#FFB162]"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-[#FFB162] font-semibold pt-1">
+                          <span>Continuar Leitura</span>
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </section>

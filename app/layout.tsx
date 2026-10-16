@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ReadEpub",
-  description: "Leitor digital imersivo estilo Kindle",
+  description: "Leitor digital imersivo offline com gamificação",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#121212",
+  themeColor: "#1B2632",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body
         suppressHydrationWarning
-        className="antialiased bg-[#0a0a0a] text-white min-h-screen overflow-y-auto overflow-x-hidden"
+        className="antialiased bg-[#1B2632] text-[#EEE9DF] min-h-screen overflow-y-auto overflow-x-hidden"
       >
         {children}
         <script

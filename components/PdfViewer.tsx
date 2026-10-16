@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { ReadingTheme } from "@/types/reader";
 
-// Configura o worker do PDF.js via CDN com a mesma versão instalada
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface PdfViewerProps {
@@ -23,11 +22,9 @@ export default function PdfViewer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
 
-  // 1. Carrega o documento clonando o buffer para evitar o DataCloneError (ArrayBuffer detached)
   useEffect(() => {
     if (!data) return;
 
-    // Faz um clone do buffer (.slice(0)) antes de enviar para o Worker
     const dataClone = data.slice(0);
     const loadingTask = pdfjsLib.getDocument({ data: dataClone });
 
@@ -45,7 +42,6 @@ export default function PdfViewer({
     };
   }, [data]);
 
-  // 2. Renderiza a página atual no Canvas com controle de cancelamento de renderização
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
 
@@ -74,7 +70,6 @@ export default function PdfViewer({
         return renderTask.promise;
       })
       .catch((err: any) => {
-        // Ignora cancelamentos de renderização causados por troca rápida de página
         if (err?.name !== "RenderingCancelledException") {
           console.error(err);
         }
@@ -88,7 +83,6 @@ export default function PdfViewer({
     };
   }, [pdfDoc, currentPage]);
 
-  // Filtros de temas para o PDF
   const getFilterStyle = () => {
     switch (theme) {
       case "dark":

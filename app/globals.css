@@ -20,14 +20,13 @@
     color: #EEE9DF;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    overflow-y: scroll !important; /* Força a barra de rolagem a existir sempre */
+    overflow-y: scroll !important;
     scrollbar-width: thin;
     scrollbar-color: #FFB162 #1B2632;
   }
 
-  /* Estilização da barra de rolagem para Chrome, Edge e Safari */
   ::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
   }
 
   ::-webkit-scrollbar-track {

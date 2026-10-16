@@ -6,7 +6,7 @@ export interface SavedBook {
   currentPage: number;
   totalPages: number;
   progressPercent: number;
-  lastLocation?: string | number; // CFI para epub ou número da página para PDF
+  lastLocation?: string | number; // CFI para EPUB ou índice da página para PDF
   updatedAt: number;
 }
 
@@ -30,7 +30,6 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-// Salvar ou atualizar livro na estante
 export async function saveBookToLibrary(book: SavedBook): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -42,7 +41,6 @@ export async function saveBookToLibrary(book: SavedBook): Promise<void> {
   });
 }
 
-// Obter todos os livros da estante
 export async function getAllBooksFromLibrary(): Promise<SavedBook[]> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -51,7 +49,6 @@ export async function getAllBooksFromLibrary(): Promise<SavedBook[]> {
     const request = store.getAll();
     request.onsuccess = () => {
       const books: SavedBook[] = request.result || [];
-      // Ordenar pelos lidos mais recentemente
       books.sort((a, b) => b.updatedAt - a.updatedAt);
       resolve(books);
     };
@@ -59,7 +56,6 @@ export async function getAllBooksFromLibrary(): Promise<SavedBook[]> {
   });
 }
 
-// Atualizar apenas o progresso do livro
 export async function updateBookLocation(
   id: string,
   currentPage: number,
@@ -89,7 +85,6 @@ export async function updateBookLocation(
   });
 }
 
-// Excluir livro da estante
 export async function deleteBookFromLibrary(id: string): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import ePub, { Book as EpubBook, Rendition } from "epubjs";
-import { ReaderSettings, Highlight } from "@/types/reader";
+import { ReaderSettings } from "@/types/reader";
 
 interface EpubViewerProps {
   data: ArrayBuffer;
@@ -51,11 +51,9 @@ export default function EpubViewer({
   useEffect(() => {
     if (!viewerRef.current || !data) return;
 
-    // Limpa conteúdo anterior do contêiner para evitar duplicações no React
     viewerRef.current.innerHTML = "";
     setLoading(true);
 
-    // Clona o buffer para evitar detachment de memória
     const book = ePub(data.slice(0));
     bookRef.current = book;
 
@@ -69,7 +67,6 @@ export default function EpubViewer({
     internalRenditionRef.current = rendition;
     if (externalRenditionRef) externalRenditionRef.current = rendition;
 
-    // Injeta folhas de estilo do Google Fonts
     rendition.hooks.content.register((contents: any) => {
       Object.values(GOOGLE_FONTS_URLS).forEach((url) => {
         contents.addStylesheet(url);
@@ -84,7 +81,6 @@ export default function EpubViewer({
       });
     });
 
-    // Seleção para marcação de texto (Highlights)
     rendition.on("selected", (cfiRange: string, contents: any) => {
       const selection = contents.window.getSelection();
       const text = selection ? selection.toString() : "";
@@ -99,13 +95,11 @@ export default function EpubViewer({
       }
     });
 
-    // Gera locais para calcular número real de páginas e progresso
     book.ready
       .then(() => {
-        return book.locations.generate(1024); // 1024 caracteres por página virtual
+        return book.locations.generate(1024);
       })
       .then(() => {
-        // Exibe o livro a partir do local salvo ou do início
         const target = typeof initialLocation === "string" ? initialLocation : undefined;
         return rendition.display(target);
       })
@@ -114,11 +108,10 @@ export default function EpubViewer({
       })
       .catch((err) => {
         console.error("Erro ao carregar EPUB:", err);
-        rendition.display(); // fallback
+        rendition.display();
         setLoading(false);
       });
 
-    // Dispara a cada mudança de página com dados precisos
     rendition.on("relocated", (location: any) => {
       if (book.locations && onPageUpdate) {
         const cfi = location.start.cfi;
@@ -141,7 +134,6 @@ export default function EpubViewer({
     };
   }, [data, bookKey]);
 
-  // Aplica tipografia e temas
   useEffect(() => {
     const rendition = internalRenditionRef.current;
     if (!rendition) return;
@@ -213,7 +205,6 @@ export default function EpubViewer({
         </div>
       )}
 
-      {/* Contêiner de renderização */}
       <div ref={viewerRef} className="w-full h-full" />
     </div>
   );

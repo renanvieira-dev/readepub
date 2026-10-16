@@ -1,4 +1,3 @@
-// Nomenclaturas divertidas e épicas baseadas em faixas de nível
 const TITLES_BY_TIER: { minLevel: number; maxLevel: number; title: string; badge: string; desc: string }[] = [
   { minLevel: 1, maxLevel: 3, title: "Traça Curiosa", badge: "🐛", desc: "Começando a roer as primeiras páginas do multiverso." },
   { minLevel: 4, maxLevel: 7, title: "Cheirador de Livro Novo", badge: "👃📚", desc: "Aquele aroma de papel e tinta fresca é o seu combustível." },
@@ -24,10 +23,7 @@ export interface RankInfo {
   totalXp: number;
 }
 
-// Cálculo de curva de XP dinâmica (progressão suave que escala infinitamente)
 export function calculateRank(xp: number): RankInfo {
-  // Fórmula: cada nível exige base + escalonamento progressivo
-  // Nível 1: 0 a 150 XP, Nível 2: 151 a 350 XP, etc.
   let level = 1;
   let requiredForNext = 150;
   let accumulatedXp = 0;
@@ -41,7 +37,6 @@ export function calculateRank(xp: number): RankInfo {
   const xpInCurrentLevel = xp - accumulatedXp;
   const progressPercent = Math.min(100, Math.round((xpInCurrentLevel / requiredForNext) * 100));
 
-  // Seleciona título ou gera dinamicamente para níveis astronômicos (100+)
   let titleInfo = TITLES_BY_TIER.find((t) => level >= t.minLevel && level <= t.maxLevel);
 
   if (!titleInfo) {
@@ -77,14 +72,12 @@ export interface Trophy {
   tier: "Bronze" | "Prata" | "Ouro" | "Diamante" | "Mítico" | "Cósmico";
 }
 
-// Troféus escaláveis infinitamente por tiers
-export function generateInfiniteTrophies(userLevel: number, userStreak: number, totalPagesRead: number = 0): Trophy[] {
+export function generateInfiniteTrophies(userLevel: number, userStreak: number): Trophy[] {
   const levelMilestones = [1, 5, 10, 20, 35, 50, 75, 100, 150, 200];
   const streakMilestones = [1, 3, 7, 14, 30, 60, 100, 180, 365, 500];
 
   const trophies: Trophy[] = [];
 
-  // Trophies de Nível
   levelMilestones.forEach((lvl, idx) => {
     const tiers: Trophy["tier"][] = ["Bronze", "Prata", "Ouro", "Diamante", "Mítico", "Cósmico"];
     const tier = tiers[Math.min(idx, tiers.length - 1)];
@@ -99,8 +92,7 @@ export function generateInfiniteTrophies(userLevel: number, userStreak: number, 
     });
   });
 
-  // Trophies de Sequência Diária
-  streakMilestones.forEach((stk, idx) => {
+  streakMilestones.forEach((stk) => {
     trophies.push({
       id: `stk_${stk}`,
       title: stk === 365 ? "Odisseia de Um Ano" : `Fogo Contínuo: ${stk} Dias`,

@@ -31,17 +31,17 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-[#1B2632] text-[#FFB162] font-mono text-xs">
-        Carregando ReadEpub...
+        A carregar ReadEpub...
       </div>
     );
   }
 
-  // 1. Tela de Login
+  // 1. Sem sessão -> Tela de Autenticação
   if (!currentUser) {
     return <AuthScreen onAuthenticated={refreshUser} />;
   }
 
-  // 2. Tela Principal: Dashboard + Estante de Livros
+  // 2. Sem livro aberto -> Dashboard e Estante
   if (!activeBook) {
     return (
       <main className="w-full min-h-screen bg-[#1B2632]">
@@ -54,7 +54,7 @@ export default function Home() {
     );
   }
 
-  // 3. Leitor Ativo
+  // 3. Leitor aberto
   return (
     <main className="w-screen h-screen overflow-hidden">
       <Reader

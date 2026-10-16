@@ -5,10 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
-  Upload,
   AlignLeft,
   AlignJustify,
-  Highlighter,
   ArrowLeft,
   Sparkles,
 } from "lucide-react";
@@ -79,16 +77,13 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
     });
   };
 
-  // Recompensa de XP e persistência contínua
   const handleProgressPersist = (page: number, total: number, percent: number, location: string | number) => {
     setCurrentPage(page);
     setTotalPages(total);
     setProgressPercent(percent);
 
-    // Salva no IndexedDB para continuar de onde parou
     updateBookLocation(initialBook.id, page, total, percent, location);
 
-    // Dá XP para a gamificação
     const activeUser = getActiveUser();
     if (activeUser) {
       updateUserProgress(activeUser.email, initialBook.id, page, total, 15);
@@ -122,7 +117,6 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
 
   return (
     <div className={`relative w-screen h-screen flex flex-col justify-between overflow-hidden select-none ${activeTheme.bg} ${activeTheme.text}`}>
-      {/* Toast flutuante de XP */}
       {xpToast && (
         <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-[#FFB162] text-[#1B2632] text-xs font-black px-4 py-1.5 rounded-full shadow-2xl animate-bounce">
           <Sparkles className="w-3.5 h-3.5" />
@@ -130,7 +124,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
         </div>
       )}
 
-      {/* Barra de Topo */}
+      {/* Topo */}
       <header
         className={`fixed top-0 inset-x-0 h-14 backdrop-blur-md bg-opacity-85 border-b border-black/5 dark:border-white/10 flex items-center justify-between px-4 z-40 transition-transform duration-300 ${
           showControls ? "translate-y-0" : "-translate-y-full"
@@ -165,7 +159,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
         </button>
       </header>
 
-      {/* Menu Tipográfico Aa */}
+      {/* Menu Aa */}
       {showAaPanel && (
         <div className="fixed top-16 right-4 w-84 max-w-[92vw] p-5 bg-[#2C3B4D] text-[#EEE9DF] rounded-2xl shadow-2xl border border-[#C9C1B1]/30 z-50 backdrop-blur-xl flex flex-col gap-4 text-xs sm:text-sm">
           <div>
@@ -254,7 +248,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
         </div>
       )}
 
-      {/* Área Central de Leitura com dimensões absolutas */}
+      {/* Área Central de Visualização */}
       <main className="absolute inset-0 pt-14 pb-14 overflow-hidden">
         {initialBook.type === "epub" ? (
           <EpubViewer
@@ -283,7 +277,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
         )}
       </main>
 
-      {/* Barra Inferior com Progresso Preciso */}
+      {/* Rodapé com Navegação */}
       <footer
         className={`fixed bottom-0 inset-x-0 h-14 backdrop-blur-md bg-opacity-85 border-t border-black/5 dark:border-white/10 flex items-center justify-between px-6 z-40 transition-transform duration-300 ${
           showControls ? "translate-y-0" : "translate-y-full"
@@ -293,7 +287,6 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        {/* Estatísticas de leitura em tempo real */}
         <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-4 text-xs font-mono text-center">
           <span className="font-bold">
             Pág. {currentPage} de {totalPages} ({progressPercent}%)
