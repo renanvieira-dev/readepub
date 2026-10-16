@@ -48,7 +48,7 @@ export default function EpubViewer({
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Injeção de estilos dinâmica com verificação estrita para evitar erros do TypeScript
+  // Injeção de tipografia e cores no iframe sem afetar as colunas
   const injectStylesIntoContents = (contents: any) => {
     if (!contents || !contents.document) return;
     const doc = contents.document as Document;
@@ -67,7 +67,6 @@ export default function EpubViewer({
     if (!styleEl) return;
 
     const theme = THEME_COLORS[settings.theme];
-    const margin = settings.marginHorizontal ?? 8;
 
     styleEl.innerHTML = `
       html, body {
@@ -77,8 +76,8 @@ export default function EpubViewer({
         font-size: ${settings.fontSize}px !important;
         line-height: ${settings.lineHeight} !important;
         text-align: ${settings.textAlign} !important;
-        padding-left: ${margin}% !important;
-        padding-right: ${margin}% !important;
+        margin: 0 !important;
+        padding: 0 !important;
         box-sizing: border-box !important;
         -webkit-user-select: none;
         user-select: none;
@@ -113,6 +112,7 @@ export default function EpubViewer({
     internalRenditionRef.current = rendition;
     if (externalRenditionRef) externalRenditionRef.current = rendition;
 
+    // Registo de estilos e eventos de toque por cada capítulo
     rendition.hooks.content.register((contents: any) => {
       Object.values(GOOGLE_FONTS_URLS).forEach((url) => {
         contents.addStylesheet(url);
@@ -122,9 +122,11 @@ export default function EpubViewer({
 
       const doc = contents.document;
 
-      // --- SUPORTE A SWIPE / DESLIZE NO SMARTPHONE ---
+      // Navegação por gestos (Swipe)
       let startX = 0;
       let startY = 0;
+      let startTime = 0;
+      let isSwiping = false;
 
       doc.addEventListener(
         "touchstart",
@@ -132,6 +134,7 @@ export default function EpubViewer({
           if (e.touches.length === 1) {
             startX = e.touches[0].clientX;
             startY = e.touches[0].clientY;
+            startTime = Date.now();
           }
         },
         { passive: true }
@@ -140,36 +143,42 @@ export default function EpubViewer({
       doc.addEventListener(
         "touchend",
         (e: TouchEvent) => {
-          if (e.changedTouches.length === 1) {
+          if (e.changedTouches.length === 1 && !isSwiping) {
             const endX = e.changedTouches[0].clientX;
             const endY = e.changedTouches[0].clientY;
             const deltaX = endX - startX;
             const deltaY = endY - startY;
+            const deltaTime = Date.now() - startTime;
 
-            // Exige movimento horizontal predominante superior a 40px
-            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40 && deltaTime < 500) {
+              isSwiping = true;
               if (deltaX < 0) {
-                // Arrastou para a esquerda -> Próxima página
                 rendition.next();
               } else {
-                // Arrastou para a direita -> Página anterior
                 rendition.prev();
               }
+              setTimeout(() => {
+                isSwiping = false;
+              }, 300);
             }
           }
         },
         { passive: true }
       );
 
-      // Toque central para abrir/fechar barras
+      // Clique central para alternar barras
       doc.addEventListener("click", (e: MouseEvent) => {
         const { clientWidth } = doc.documentElement;
         if (e.clientX > clientWidth * 0.25 && e.clientX < clientWidth * 0.75) {
-          if (onToggleControls) onToggleControls();
+          const selection = doc.getSelection();
+          if (!selection || selection.toString().trim().length === 0) {
+            if (onToggleControls) onToggleControls();
+          }
         }
       });
     });
 
+    // Seleção de texto para destaques
     rendition.on("selected", (cfiRange: string, contents: any) => {
       const selection = contents.window.getSelection();
       const text = selection ? selection.toString() : "";
@@ -184,37 +193,66 @@ export default function EpubViewer({
       }
     });
 
-    book.ready
-      .then(() => {
-        return book.locations.generate(1024);
-      })
-      .then(() => {
-        const target = typeof initialLocation === "string" ? initialLocation : undefined;
-        return rendition.display(target);
-      })
-      .then(() => {
+    // Abertura segura com fallback contra o erro "No startContainer found"
+    const openBookSafely = async () => {
+      try {
+        if (initialLocation && typeof initialLocation === "string" && initialLocation.startsWith("epubcfi")) {
+          await rendition.display(initialLocation);
+        } else {
+          await rendition.display();
+        }
+      } catch (err) {
+        console.warn("Aviso: Falha ao carregar o CFI guardado, a abrir o início do livro:", err);
+        try {
+          await rendition.display();
+        } catch (e2) {
+          console.error("Erro crítico na renderização do EPUB:", e2);
+        }
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Erro ao carregar EPUB:", err);
-        rendition.display();
-        setLoading(false);
-      });
+      }
+    };
 
+    book.ready.then(() => {
+      openBookSafely();
+      // Geração de localizações em segundo plano sem travar a interface
+      book.locations.generate(1024).catch(() => {});
+    });
+
+    // Atualização de páginas e progresso
     rendition.on("relocated", (location: any) => {
-      if (book.locations && onPageUpdate) {
+      if (onPageUpdate && location?.start?.cfi) {
         const cfi = location.start.cfi;
         const locs = book.locations as any;
-        
-        const percent = Math.round((Number(locs.percentageFromCfi(cfi)) || 0) * 100);
-        const currentPage = Number(locs.locationFromCfi(cfi)) || 1;
-        const totalPages = Number(locs.total || (typeof locs.length === "function" ? locs.length() : 1)) || 1;
+
+        let percent = 0;
+        let currentPage = 1;
+        let totalPages = 1;
+
+        if (locs && locs.total) {
+          percent = Math.round((Number(locs.percentageFromCfi(cfi)) || 0) * 100);
+          currentPage = Number(locs.locationFromCfi(cfi)) || 1;
+          totalPages = Number(locs.total) || 1;
+        }
 
         onPageUpdate(currentPage, totalPages, percent, cfi);
       }
     });
 
+    // Observador para redimensionar automaticamente ao mudar de ecrã/orientação
+    const resizeObserver = new ResizeObserver((entries) => {
+      if (internalRenditionRef.current) {
+        const { width, height } = entries[0].contentRect;
+        internalRenditionRef.current.resize(width, height);
+      }
+    });
+
+    if (viewerRef.current) {
+      resizeObserver.observe(viewerRef.current);
+    }
+
     return () => {
+      resizeObserver.disconnect();
       try {
         book.destroy();
       } catch (e) {
@@ -223,13 +261,12 @@ export default function EpubViewer({
     };
   }, [data, bookKey]);
 
-  // Atualização em tempo real quando o utilizador altera margens, entrelinhas, fonte ou tema
+  // Atualização imediata de tipografia, tema e redimensionamento das margens
   useEffect(() => {
     const rendition = internalRenditionRef.current;
     if (!rendition) return;
 
     const theme = THEME_COLORS[settings.theme];
-    const margin = settings.marginHorizontal ?? 8;
 
     rendition.themes.default({
       body: {
@@ -239,9 +276,6 @@ export default function EpubViewer({
         "font-size": `${settings.fontSize}px !important`,
         "line-height": `${settings.lineHeight} !important`,
         "text-align": `${settings.textAlign} !important`,
-        "padding-left": `${margin}% !important`,
-        "padding-right": `${margin}% !important`,
-        "box-sizing": "border-box !important",
       },
       p: {
         "font-family": `"${settings.fontFamily}", serif !important`,
@@ -256,6 +290,9 @@ export default function EpubViewer({
       contentsList.forEach((contents: any) => {
         injectStylesIntoContents(contents);
       });
+      // Recalcula as colunas instantaneamente quando as margens mudam
+      const { width, height } = viewerRef.current?.getBoundingClientRect() ?? { width: 0, height: 0 };
+      rendition.resize(width, height);
     } catch (e) {
       console.warn("Não foi possível atualizar estilos diretamente no iframe:", e);
     }
@@ -275,12 +312,23 @@ export default function EpubViewer({
     setMenuPosition(null);
   };
 
+  const marginPadding = `${settings.marginHorizontal ?? 8}%`;
+  const activeBg = THEME_COLORS[settings.theme].bg;
+
   return (
-    <div className="relative w-full h-full">
+    <div
+      style={{
+        backgroundColor: activeBg,
+        paddingLeft: marginPadding,
+        paddingRight: marginPadding,
+        transition: "padding 0.2s ease",
+      }}
+      className="relative w-full h-full overflow-hidden"
+    >
       {loading && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1B2632] text-[#FFB162] z-30 font-mono text-sm gap-2">
           <div className="w-8 h-8 border-2 border-[#FFB162] border-t-transparent rounded-full animate-spin" />
-          <span>Diagramando páginas do EPUB...</span>
+          <span>A carregar livro...</span>
         </div>
       )}
 
