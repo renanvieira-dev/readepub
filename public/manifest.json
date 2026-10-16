@@ -1,21 +1,21 @@
 {
   "name": "ReadEpub",
   "short_name": "ReadEpub",
-  "description": "Seu leitor digital de livros personalizável no estilo Kindle",
+  "description": "Leitor digital imersivo offline com gamificação",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#121212",
-  "orientation": "portrait-primary",
+  "background_color": "#1B2632",
+  "theme_color": "#1B2632",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/icon",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
+      "src": "/apple-icon",
+      "sizes": "180x180",
       "type": "image/png"
     }
   ]

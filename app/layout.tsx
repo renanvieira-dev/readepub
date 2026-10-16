@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "ReadEpub",
   description: "Leitor digital imersivo offline com gamificação",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon",
+    apple: "/apple-icon",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

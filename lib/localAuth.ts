@@ -29,7 +29,9 @@ export function getStoredUsers(): Record<string, StoredUser> {
 
 export function getActiveUser(): StoredUser | null {
   if (typeof window === "undefined") return null;
-  const activeEmail = localStorage.getItem(SESSION_KEY);
+  // Verifica se a sessão está guardada no localStorage (permanecer conectado) ou sessionStorage
+  const activeEmail =
+    localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
   if (!activeEmail) return null;
 
   const users = getStoredUsers();
@@ -39,13 +41,14 @@ export function getActiveUser(): StoredUser | null {
 export function registerLocalUser(
   email: string,
   password: string,
-  username: string
+  username: string,
+  rememberMe: boolean = true
 ): { success: boolean; message?: string; user?: StoredUser } {
   const users = getStoredUsers();
   const normalizedEmail = email.toLowerCase().trim();
 
   if (users[normalizedEmail]) {
-    return { success: false, message: "Já existe uma conta com este e-mail." };
+    return { success: false, message: "Já existe uma conta associada a este e-mail." };
   }
 
   const newUser: StoredUser = {
@@ -65,14 +68,22 @@ export function registerLocalUser(
 
   users[normalizedEmail] = newUser;
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  localStorage.setItem(SESSION_KEY, normalizedEmail);
+
+  if (rememberMe) {
+    localStorage.setItem(SESSION_KEY, normalizedEmail);
+    sessionStorage.removeItem(SESSION_KEY);
+  } else {
+    sessionStorage.setItem(SESSION_KEY, normalizedEmail);
+    localStorage.removeItem(SESSION_KEY);
+  }
 
   return { success: true, user: newUser };
 }
 
 export function loginLocalUser(
   email: string,
-  password: string
+  password: string,
+  rememberMe: boolean = true
 ): { success: boolean; message?: string; user?: StoredUser } {
   const users = getStoredUsers();
   const normalizedEmail = email.toLowerCase().trim();
@@ -105,13 +116,21 @@ export function loginLocalUser(
   user.lastReadDate = today;
   users[normalizedEmail] = user;
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  localStorage.setItem(SESSION_KEY, normalizedEmail);
+
+  if (rememberMe) {
+    localStorage.setItem(SESSION_KEY, normalizedEmail);
+    sessionStorage.removeItem(SESSION_KEY);
+  } else {
+    sessionStorage.setItem(SESSION_KEY, normalizedEmail);
+    localStorage.removeItem(SESSION_KEY);
+  }
 
   return { success: true, user };
 }
 
 export function logoutLocalUser() {
   localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
 }
 
 export function updateUserProgress(
