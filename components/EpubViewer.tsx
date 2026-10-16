@@ -43,12 +43,25 @@ export default function EpubViewer({
   const viewerRef = useRef<HTMLDivElement>(null);
   const internalRenditionRef = useRef<Rendition | null>(null);
   const bookRef = useRef<EpubBook | null>(null);
+  const isReadyRef = useRef<boolean>(false);
 
   const [selectionRange, setSelectionRange] = useState<{ cfiRange: string; text: string } | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Injeção de tipografia e cores no iframe sem afetar as colunas
+  // Redimensionamento seguro que nunca dispara antes do gestor estar pronto
+  const safeResize = () => {
+    const rendition = internalRenditionRef.current as any;
+    if (isReadyRef.current && rendition && rendition.manager) {
+      try {
+        rendition.resize();
+      } catch {
+        // Ignora chamadas concorrentes enquanto as colunas recalculam
+      }
+    }
+  };
+
+  // Injeção de tipografia no iframe
   const injectStylesIntoContents = (contents: any) => {
     if (!contents || !contents.document) return;
     const doc = contents.document as Document;
@@ -98,6 +111,7 @@ export default function EpubViewer({
 
     viewerRef.current.innerHTML = "";
     setLoading(true);
+    isReadyRef.current = false;
 
     const book = ePub(data.slice(0));
     bookRef.current = book;
@@ -112,7 +126,6 @@ export default function EpubViewer({
     internalRenditionRef.current = rendition;
     if (externalRenditionRef) externalRenditionRef.current = rendition;
 
-    // Registo de estilos e eventos de toque por cada capítulo
     rendition.hooks.content.register((contents: any) => {
       Object.values(GOOGLE_FONTS_URLS).forEach((url) => {
         contents.addStylesheet(url);
@@ -122,7 +135,7 @@ export default function EpubViewer({
 
       const doc = contents.document;
 
-      // Navegação por gestos (Swipe)
+      // Gestos de deslize no telemóvel
       let startX = 0;
       let startY = 0;
       let startTime = 0;
@@ -166,7 +179,7 @@ export default function EpubViewer({
         { passive: true }
       );
 
-      // Clique central para alternar barras
+      // Toque central para barras
       doc.addEventListener("click", (e: MouseEvent) => {
         const { clientWidth } = doc.documentElement;
         if (e.clientX > clientWidth * 0.25 && e.clientX < clientWidth * 0.75) {
@@ -178,7 +191,6 @@ export default function EpubViewer({
       });
     });
 
-    // Seleção de texto para destaques
     rendition.on("selected", (cfiRange: string, contents: any) => {
       const selection = contents.window.getSelection();
       const text = selection ? selection.toString() : "";
@@ -193,33 +205,35 @@ export default function EpubViewer({
       }
     });
 
-    // Abertura segura com fallback contra o erro "No startContainer found"
-    const openBookSafely = async () => {
-      try {
-        if (initialLocation && typeof initialLocation === "string" && initialLocation.startsWith("epubcfi")) {
+    // Abertura com recuperação para erros de CFI antigo
+    const openBook = async () => {
+      let displayed = false;
+      if (initialLocation && typeof initialLocation === "string" && initialLocation.startsWith("epubcfi")) {
+        try {
           await rendition.display(initialLocation);
-        } else {
-          await rendition.display();
+          displayed = true;
+        } catch {
+          // CFI corrompido ou fora de escala
         }
-      } catch (err) {
-        console.warn("Aviso: Falha ao carregar o CFI guardado, a abrir o início do livro:", err);
+      }
+
+      if (!displayed) {
         try {
           await rendition.display();
-        } catch (e2) {
-          console.error("Erro crítico na renderização do EPUB:", e2);
+        } catch (e) {
+          console.error("Erro ao abrir página inicial do EPUB:", e);
         }
-      } finally {
-        setLoading(false);
       }
+
+      isReadyRef.current = true;
+      setLoading(false);
+
+      // Gera localizações de página em background sem bloquear
+      book.locations.generate(1024).catch(() => {});
     };
 
-    book.ready.then(() => {
-      openBookSafely();
-      // Geração de localizações em segundo plano sem travar a interface
-      book.locations.generate(1024).catch(() => {});
-    });
+    book.ready.then(openBook);
 
-    // Atualização de páginas e progresso
     rendition.on("relocated", (location: any) => {
       if (onPageUpdate && location?.start?.cfi) {
         const cfi = location.start.cfi;
@@ -239,12 +253,13 @@ export default function EpubViewer({
       }
     });
 
-    // Observador para redimensionar automaticamente ao mudar de ecrã/orientação
-    const resizeObserver = new ResizeObserver((entries) => {
-      if (internalRenditionRef.current) {
-        const { width, height } = entries[0].contentRect;
-        internalRenditionRef.current.resize(width, height);
-      }
+    // ResizeObserver com debounce e validação do gestor
+    let resizeTimer: any = null;
+    const resizeObserver = new ResizeObserver(() => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        safeResize();
+      }, 150);
     });
 
     if (viewerRef.current) {
@@ -252,7 +267,9 @@ export default function EpubViewer({
     }
 
     return () => {
+      clearTimeout(resizeTimer);
       resizeObserver.disconnect();
+      isReadyRef.current = false;
       try {
         book.destroy();
       } catch (e) {
@@ -261,7 +278,7 @@ export default function EpubViewer({
     };
   }, [data, bookKey]);
 
-  // Atualização imediata de tipografia, tema e redimensionamento das margens
+  // Atualização de configurações
   useEffect(() => {
     const rendition = internalRenditionRef.current;
     if (!rendition) return;
@@ -290,11 +307,9 @@ export default function EpubViewer({
       contentsList.forEach((contents: any) => {
         injectStylesIntoContents(contents);
       });
-      // Recalcula as colunas instantaneamente quando as margens mudam
-      const { width, height } = viewerRef.current?.getBoundingClientRect() ?? { width: 0, height: 0 };
-      rendition.resize(width, height);
-    } catch (e) {
-      console.warn("Não foi possível atualizar estilos diretamente no iframe:", e);
+      safeResize();
+    } catch {
+      // Ignora durante montagem inicial
     }
   }, [settings]);
 
