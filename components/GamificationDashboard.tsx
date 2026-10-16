@@ -316,7 +316,7 @@ export default function GamificationDashboard({
                         <div className="w-full h-2 bg-[#1B2632] rounded-full overflow-hidden p-0.5 border border-[#C9C1B1]/20">
                           <div
                             style={{ width: `${Math.max(3, b.progressPercent || 0)}%` }}
-                            className="h-full rounded-full bg-gradient-to-r from-[#A35139] to-[#FFB162]"
+                            className="h-full rounded-full bg-linear-to-r from-[#A35139] to-[#FFB162]"
                           />
                         </div>
 

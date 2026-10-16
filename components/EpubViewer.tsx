@@ -134,11 +134,14 @@ export default function EpubViewer({
     };
   }, [data, bookKey]);
 
+  // Aplicação dinâmica de fontes, tamanho, entrelinhas, margens e alinhamento
   useEffect(() => {
     const rendition = internalRenditionRef.current;
     if (!rendition) return;
 
     const theme = THEME_COLORS[settings.theme];
+    const margin = settings.marginHorizontal ?? 8;
+
     rendition.themes.default({
       body: {
         background: `${theme.bg} !important`,
@@ -147,7 +150,7 @@ export default function EpubViewer({
         "font-size": `${settings.fontSize}px !important`,
         "line-height": `${settings.lineHeight} !important`,
         "text-align": `${settings.textAlign} !important`,
-        padding: "0 8% !important",
+        padding: `0 ${margin}% !important`,
       },
       p: {
         "font-family": `"${settings.fontFamily}", serif !important`,

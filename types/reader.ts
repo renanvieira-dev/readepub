@@ -17,6 +17,7 @@ export interface Highlight {
 }
 
 export interface ReaderSettings {
+  marginHorizontal: number;
   fontSize: number;
   lineHeight: number;
   fontFamily: GoogleFontName;
