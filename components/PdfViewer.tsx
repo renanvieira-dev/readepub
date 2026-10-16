@@ -11,6 +11,8 @@ interface PdfViewerProps {
   theme: ReadingTheme;
   currentPage: number;
   onPageCountChange: (total: number) => void;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
 }
 
 export default function PdfViewer({
@@ -18,9 +20,14 @@ export default function PdfViewer({
   theme,
   currentPage,
   onPageCountChange,
+  onNextPage,
+  onPrevPage,
 }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDoc, setPdfDoc] = useState<any>(null);
+
+  const touchStartXRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
 
   useEffect(() => {
     if (!data) return;
@@ -83,6 +90,28 @@ export default function PdfViewer({
     };
   }, [pdfDoc, currentPage]);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      touchStartXRef.current = e.touches[0].clientX;
+      touchStartYRef.current = e.touches[0].clientY;
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.changedTouches.length === 1) {
+      const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+      const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+        if (deltaX < 0) {
+          onNextPage?.();
+        } else {
+          onPrevPage?.();
+        }
+      }
+    }
+  };
+
   const getFilterStyle = () => {
     switch (theme) {
       case "dark":
@@ -98,11 +127,15 @@ export default function PdfViewer({
   };
 
   return (
-    <div className="w-full h-full overflow-auto flex items-center justify-center p-4">
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      className="w-full h-full overflow-auto flex items-center justify-center p-4 touch-pan-y"
+    >
       <canvas
         ref={canvasRef}
         style={{ filter: getFilterStyle() }}
-        className="max-h-full max-w-full rounded-lg shadow-2xl transition-[filter] duration-200"
+        className="max-h-full max-w-full rounded-lg shadow-2xl transition-[filter] duration-200 pointer-events-none"
       />
     </div>
   );

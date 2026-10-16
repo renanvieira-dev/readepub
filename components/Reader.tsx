@@ -159,7 +159,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
 
           <div className="flex items-center gap-2">
             <BookOpen className="w-4 h-4 opacity-70" />
-            <span className="font-semibold text-sm truncate max-w-37.5 sm:max-w-xs">
+            <span className="font-semibold text-sm truncate max-w-[150px] sm:max-w-xs">
               {initialBook.name}
             </span>
             <span className="uppercase text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#FFB162]/20 text-[#FFB162]">
@@ -176,7 +176,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
         </button>
       </header>
 
-      {/* Painel Flutuante Aa com Rolagem Interna */}
+      {/* Painel Flutuante Aa com rolagem interna */}
       {showAaPanel && (
         <div className="fixed top-16 right-4 w-88 max-w-[92vw] max-h-[82vh] overflow-y-auto p-5 bg-[#2C3B4D] text-[#EEE9DF] rounded-2xl shadow-2xl border border-[#C9C1B1]/30 z-50 backdrop-blur-xl flex flex-col gap-4 text-xs sm:text-sm">
           {/* Temas */}
@@ -317,7 +317,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
         </div>
       )}
 
-      {/* Leitor */}
+      {/* Área Central de Visualização */}
       <main className="absolute inset-0 pt-14 pb-14 overflow-hidden">
         {initialBook.type === "epub" ? (
           <EpubViewer
@@ -337,6 +337,8 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
             data={initialBook.data}
             theme={settings.theme}
             currentPage={currentPage}
+            onNextPage={nextPage}
+            onPrevPage={prevPage}
             onPageCountChange={(total) => {
               setTotalPages(total);
               const percent = Math.round((currentPage / Math.max(1, total)) * 100);
@@ -346,7 +348,7 @@ export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) 
         )}
       </main>
 
-      {/* Rodapé com Navegação */}
+      {/* Barra Inferior */}
       <footer
         className={`fixed bottom-0 inset-x-0 h-14 backdrop-blur-md bg-opacity-85 border-t border-black/5 dark:border-white/10 flex items-center justify-between px-6 z-40 transition-transform duration-300 ${
           showControls ? "translate-y-0" : "translate-y-full"

@@ -80,6 +80,8 @@ export default function EpubViewer({
         padding-left: ${margin}% !important;
         padding-right: ${margin}% !important;
         box-sizing: border-box !important;
+        -webkit-user-select: none;
+        user-select: none;
       }
       p, div, span, li, a {
         font-family: "${settings.fontFamily}", serif !important;
@@ -119,6 +121,47 @@ export default function EpubViewer({
       injectStylesIntoContents(contents);
 
       const doc = contents.document;
+
+      // --- SUPORTE A SWIPE / DESLIZE NO SMARTPHONE ---
+      let startX = 0;
+      let startY = 0;
+
+      doc.addEventListener(
+        "touchstart",
+        (e: TouchEvent) => {
+          if (e.touches.length === 1) {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+          }
+        },
+        { passive: true }
+      );
+
+      doc.addEventListener(
+        "touchend",
+        (e: TouchEvent) => {
+          if (e.changedTouches.length === 1) {
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const deltaX = endX - startX;
+            const deltaY = endY - startY;
+
+            // Exige movimento horizontal predominante superior a 40px
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+              if (deltaX < 0) {
+                // Arrastou para a esquerda -> Próxima página
+                rendition.next();
+              } else {
+                // Arrastou para a direita -> Página anterior
+                rendition.prev();
+              }
+            }
+          }
+        },
+        { passive: true }
+      );
+
+      // Toque central para abrir/fechar barras
       doc.addEventListener("click", (e: MouseEvent) => {
         const { clientWidth } = doc.documentElement;
         if (e.clientX > clientWidth * 0.25 && e.clientX < clientWidth * 0.75) {
