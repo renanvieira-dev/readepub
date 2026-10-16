@@ -6,8 +6,7 @@ export type GoogleFontName =
   | "Lora"
   | "Inter"
   | "Roboto"
-  | "Cinzel"
-  | "OpenDyslexic";
+  | "Cinzel";
 
 export interface Highlight {
   id: string;
@@ -18,8 +17,8 @@ export interface Highlight {
 }
 
 export interface ReaderSettings {
-  fontSize: number; // 12 a 36
-  lineHeight: number; // 1.2 a 2.4
+  fontSize: number;
+  lineHeight: number;
   fontFamily: GoogleFontName;
   theme: ReadingTheme;
   maxWidth: number;
@@ -30,4 +29,17 @@ export interface LoadedFile {
   name: string;
   type: "epub" | "pdf";
   data: ArrayBuffer;
+}
+
+// Interface necessária para a gamificação e para o localAuth
+export interface UserProfile {
+  id: string;
+  email: string;
+  username: string;
+  xp: number;
+  level: number;
+  current_streak: number;
+  longest_streak: number;
+  daily_goal_minutes: number;
+  minutes_read_today: number;
 }

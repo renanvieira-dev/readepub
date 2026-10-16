@@ -26,10 +26,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-PT">
+    <html lang="pt-BR">
       <body
         suppressHydrationWarning
-        className="antialiased bg-black text-white overflow-hidden"
+        className="antialiased bg-[#0a0a0a] text-white min-h-screen overflow-y-auto overflow-x-hidden"
       >
         {children}
         <script

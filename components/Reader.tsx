@@ -9,10 +9,19 @@ import {
   AlignLeft,
   AlignJustify,
   Highlighter,
+  ArrowLeft,
+  Sparkles,
 } from "lucide-react";
-import { ReaderSettings, ReadingTheme, GoogleFontName, LoadedFile } from "@/types/reader";
+import { ReaderSettings, ReadingTheme, GoogleFontName } from "@/types/reader";
+import { updateUserProgress, getActiveUser } from "@/lib/localAuth";
+import { updateBookLocation, SavedBook } from "@/lib/db";
 import EpubViewer from "./EpubViewer";
 import PdfViewer from "./PdfViewer";
+
+interface ReaderProps {
+  initialBook: SavedBook;
+  onBackToDashboard: () => void;
+}
 
 const GOOGLE_FONTS: GoogleFontName[] = [
   "Literata",
@@ -31,13 +40,15 @@ const THEME_STYLES: Record<ReadingTheme, { bg: string; text: string; label: stri
   oled: { bg: "bg-black", text: "text-[#9ca3af]", label: "OLED" },
 };
 
-export default function Reader() {
-  const [currentFile, setCurrentFile] = useState<LoadedFile | null>(null);
-  const [pdfPage, setPdfPage] = useState<number>(1);
-  const [pdfTotalPages, setPdfTotalPages] = useState<number>(1);
+export default function Reader({ initialBook, onBackToDashboard }: ReaderProps) {
+  const [currentPage, setCurrentPage] = useState<number>(initialBook.currentPage || 1);
+  const [totalPages, setTotalPages] = useState<number>(initialBook.totalPages || 1);
+  const [progressPercent, setProgressPercent] = useState<number>(initialBook.progressPercent || 0);
 
   const [showControls, setShowControls] = useState<boolean>(true);
   const [showAaPanel, setShowAaPanel] = useState<boolean>(false);
+  const [xpToast, setXpToast] = useState<string | null>(null);
+
   const renditionRef = useRef<any>(null);
 
   const [settings, setSettings] = useState<ReaderSettings>({
@@ -68,100 +79,104 @@ export default function Reader() {
     });
   };
 
-  // Upload e deteção de ficheiro (.epub ou .pdf)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Recompensa de XP e persistência contínua
+  const handleProgressPersist = (page: number, total: number, percent: number, location: string | number) => {
+    setCurrentPage(page);
+    setTotalPages(total);
+    setProgressPercent(percent);
 
-    const isPdf = file.name.toLowerCase().endsWith(".pdf");
-    const isEpub = file.name.toLowerCase().endsWith(".epub");
+    // Salva no IndexedDB para continuar de onde parou
+    updateBookLocation(initialBook.id, page, total, percent, location);
 
-    if (!isPdf && !isEpub) {
-      alert("Por favor, selecione um ficheiro .epub ou .pdf");
-      return;
+    // Dá XP para a gamificação
+    const activeUser = getActiveUser();
+    if (activeUser) {
+      updateUserProgress(activeUser.email, initialBook.id, page, total, 15);
+      setXpToast("+15 XP");
+      setTimeout(() => setXpToast(null), 1500);
     }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const arrayBuffer = event.target?.result as ArrayBuffer;
-      setCurrentFile({
-        name: file.name.replace(/\.[^/.]+$/, ""),
-        type: isPdf ? "pdf" : "epub",
-        data: arrayBuffer,
-      });
-      setPdfPage(1);
-    };
-    reader.readAsArrayBuffer(file);
   };
 
   const nextPage = () => {
-    if (currentFile?.type === "epub" && renditionRef.current) {
+    if (initialBook.type === "epub" && renditionRef.current) {
       renditionRef.current.next();
-    } else if (currentFile?.type === "pdf") {
-      setPdfPage((p) => Math.min(pdfTotalPages, p + 1));
+    } else if (initialBook.type === "pdf") {
+      const next = Math.min(totalPages, currentPage + 1);
+      const percent = Math.round((next / Math.max(1, totalPages)) * 100);
+      handleProgressPersist(next, totalPages, percent, next);
     }
   };
 
   const prevPage = () => {
-    if (currentFile?.type === "epub" && renditionRef.current) {
+    if (initialBook.type === "epub" && renditionRef.current) {
       renditionRef.current.prev();
-    } else if (currentFile?.type === "pdf") {
-      setPdfPage((p) => Math.max(1, p - 1));
+    } else if (initialBook.type === "pdf") {
+      const prev = Math.max(1, currentPage - 1);
+      const percent = Math.round((prev / Math.max(1, totalPages)) * 100);
+      handleProgressPersist(prev, totalPages, percent, prev);
     }
   };
 
+  const pagesRemaining = Math.max(0, totalPages - currentPage);
   const activeTheme = THEME_STYLES[settings.theme];
 
   return (
-    <div className={`relative w-screen h-screen flex flex-col justify-between overflow-hidden ${activeTheme.bg} ${activeTheme.text}`}>
-      {/* Barra de Menus Superior */}
+    <div className={`relative w-screen h-screen flex flex-col justify-between overflow-hidden select-none ${activeTheme.bg} ${activeTheme.text}`}>
+      {/* Toast flutuante de XP */}
+      {xpToast && (
+        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1.5 bg-[#FFB162] text-[#1B2632] text-xs font-black px-4 py-1.5 rounded-full shadow-2xl animate-bounce">
+          <Sparkles className="w-3.5 h-3.5" />
+          <span>{xpToast}</span>
+        </div>
+      )}
+
+      {/* Barra de Topo */}
       <header
-        className={`fixed top-0 inset-x-0 h-14 backdrop-blur-md bg-opacity-80 border-b border-black/5 dark:border-white/5 flex items-center justify-between px-4 z-40 transition-transform duration-300 ${
+        className={`fixed top-0 inset-x-0 h-14 backdrop-blur-md bg-opacity-85 border-b border-black/5 dark:border-white/10 flex items-center justify-between px-4 z-40 transition-transform duration-300 ${
           showControls ? "translate-y-0" : "-translate-y-full"
         }`}
       >
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5 opacity-70" />
-          <span className="font-semibold text-sm truncate max-w-[200px] sm:max-w-xs">
-            {currentFile ? currentFile.name : "ReadEpub"}
-          </span>
-          {currentFile && (
-            <span className="uppercase text-[10px] px-1.5 py-0.5 rounded font-mono bg-black/10 dark:bg-white/10">
-              {currentFile.type}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Botão de Upload */}
-          <label className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 cursor-pointer active:scale-95" title="Abrir EPUB ou PDF">
-            <Upload className="w-5 h-5 opacity-80" />
-            <input type="file" accept=".epub,.pdf" className="hidden" onChange={handleFileUpload} />
-          </label>
-
-          {/* Botão Tipografia (Aa) */}
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowAaPanel((p) => !p)}
-            className="px-3 py-1 text-sm font-serif font-bold border border-current rounded-lg hover:bg-black/5 dark:hover:bg-white/10 active:scale-95"
+            onClick={onBackToDashboard}
+            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 cursor-pointer"
+            title="Voltar para a Estante"
           >
-            Aa
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Estante</span>
           </button>
+
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4 opacity-70" />
+            <span className="font-semibold text-sm truncate max-w-[150px] sm:max-w-xs">
+              {initialBook.name}
+            </span>
+            <span className="uppercase text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#FFB162]/20 text-[#FFB162]">
+              {initialBook.type}
+            </span>
+          </div>
         </div>
+
+        <button
+          onClick={() => setShowAaPanel((p) => !p)}
+          className="px-3 py-1 text-sm font-serif font-bold border border-current rounded-lg hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 cursor-pointer"
+        >
+          Aa
+        </button>
       </header>
 
-      {/* Painel de Configurações Aa */}
+      {/* Menu Tipográfico Aa */}
       {showAaPanel && (
-        <div className="fixed top-16 right-4 w-84 max-w-[92vw] p-5 bg-white/95 dark:bg-[#1a1a1a]/95 text-neutral-900 dark:text-neutral-100 rounded-2xl shadow-2xl border border-black/10 dark:border-white/10 z-50 backdrop-blur-lg flex flex-col gap-4 text-xs sm:text-sm">
-          {/* Temas */}
+        <div className="fixed top-16 right-4 w-84 max-w-[92vw] p-5 bg-[#2C3B4D] text-[#EEE9DF] rounded-2xl shadow-2xl border border-[#C9C1B1]/30 z-50 backdrop-blur-xl flex flex-col gap-4 text-xs sm:text-sm">
           <div>
-            <label className="font-semibold block mb-2 opacity-60">Fundo e Contraste</label>
+            <label className="font-semibold block mb-2 text-[#C9C1B1]">Tema</label>
             <div className="grid grid-cols-5 gap-2">
               {(Object.keys(THEME_STYLES) as ReadingTheme[]).map((thm) => (
                 <button
                   key={thm}
                   onClick={() => updateSettings({ theme: thm })}
-                  className={`h-8 rounded-lg border text-xs font-medium flex items-center justify-center transition-all ${
-                    settings.theme === thm ? "ring-2 ring-blue-500 scale-105" : "opacity-80"
+                  className={`h-8 rounded-lg border text-xs font-medium flex items-center justify-center transition-all cursor-pointer ${
+                    settings.theme === thm ? "ring-2 ring-[#FFB162] scale-105" : "opacity-80"
                   } ${THEME_STYLES[thm].bg} ${THEME_STYLES[thm].text}`}
                 >
                   {THEME_STYLES[thm].label[0]}
@@ -170,19 +185,19 @@ export default function Reader() {
             </div>
           </div>
 
-          {/* Apenas para EPUB: Controlo total de tipografia */}
-          {currentFile?.type === "epub" && (
+          {initialBook.type === "epub" && (
             <>
-              {/* Google Fonts */}
               <div>
-                <label className="font-semibold block mb-2 opacity-60">Fonte (Google Fonts)</label>
+                <label className="font-semibold block mb-2 text-[#C9C1B1]">Fonte (Google)</label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {GOOGLE_FONTS.map((font) => (
                     <button
                       key={font}
                       onClick={() => updateSettings({ fontFamily: font })}
-                      className={`py-1.5 px-2 rounded-lg border text-xs truncate ${
-                        settings.fontFamily === font ? "bg-blue-600 text-white font-bold" : "bg-neutral-100 dark:bg-neutral-800"
+                      className={`py-1.5 px-2 rounded-lg border text-xs truncate cursor-pointer ${
+                        settings.fontFamily === font
+                          ? "bg-[#FFB162] text-[#1B2632] font-bold"
+                          : "bg-[#1B2632] border-[#C9C1B1]/20 text-[#EEE9DF]"
                       }`}
                     >
                       {font}
@@ -191,13 +206,12 @@ export default function Reader() {
                 </div>
               </div>
 
-              {/* Tamanho da Fonte */}
               <div>
-                <label className="font-semibold block mb-1 opacity-60">Tamanho: {settings.fontSize}px</label>
+                <label className="font-semibold block mb-1 text-[#C9C1B1]">Tamanho: {settings.fontSize}px</label>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => updateSettings({ fontSize: Math.max(12, settings.fontSize - 2) })}
-                    className="px-3 py-1 bg-neutral-200 dark:bg-neutral-800 rounded font-bold"
+                    className="px-3 py-1 bg-[#1B2632] border border-[#C9C1B1]/20 rounded font-bold cursor-pointer"
                   >
                     A-
                   </button>
@@ -207,30 +221,29 @@ export default function Reader() {
                     max="32"
                     value={settings.fontSize}
                     onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
-                    className="w-full accent-blue-500"
+                    className="w-full accent-[#FFB162]"
                   />
                   <button
                     onClick={() => updateSettings({ fontSize: Math.min(36, settings.fontSize + 2) })}
-                    className="px-3 py-1 bg-neutral-200 dark:bg-neutral-800 rounded font-bold"
+                    className="px-3 py-1 bg-[#1B2632] border border-[#C9C1B1]/20 rounded font-bold cursor-pointer"
                   >
                     A+
                   </button>
                 </div>
               </div>
 
-              {/* Alinhamento */}
-              <div className="flex items-center justify-between pt-2 border-t border-neutral-200 dark:border-neutral-800">
-                <span className="font-semibold opacity-60">Alinhamento</span>
+              <div className="flex items-center justify-between pt-2 border-t border-[#C9C1B1]/20">
+                <span className="font-semibold text-[#C9C1B1]">Alinhamento</span>
                 <div className="flex gap-1">
                   <button
                     onClick={() => updateSettings({ textAlign: "left" })}
-                    className={`p-1.5 rounded ${settings.textAlign === "left" ? "bg-blue-600 text-white" : "hover:bg-neutral-200 dark:hover:bg-neutral-800"}`}
+                    className={`p-1.5 rounded cursor-pointer ${settings.textAlign === "left" ? "bg-[#FFB162] text-[#1B2632]" : "bg-[#1B2632]"}`}
                   >
                     <AlignLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => updateSettings({ textAlign: "justify" })}
-                    className={`p-1.5 rounded ${settings.textAlign === "justify" ? "bg-blue-600 text-white" : "hover:bg-neutral-200 dark:hover:bg-neutral-800"}`}
+                    className={`p-1.5 rounded cursor-pointer ${settings.textAlign === "justify" ? "bg-[#FFB162] text-[#1B2632]" : "bg-[#1B2632]"}`}
                   >
                     <AlignJustify className="w-4 h-4" />
                   </button>
@@ -241,73 +254,59 @@ export default function Reader() {
         </div>
       )}
 
-      {/* Área de Visualização Principal */}
-      <main className="relative flex-1 w-full h-full overflow-hidden">
-        {currentFile ? (
-          <>
-            {currentFile.type === "epub" ? (
-              <EpubViewer
-                data={currentFile.data}
-                settings={settings}
-                bookKey={currentFile.name}
-                renditionRef={renditionRef}
-                onToggleControls={() => {
-                  setShowControls((p) => !p);
-                  setShowAaPanel(false);
-                }}
-              />
-            ) : (
-              <PdfViewer
-                data={currentFile.data}
-                theme={settings.theme}
-                currentPage={pdfPage}
-                onPageCountChange={(total) => setPdfTotalPages(total)}
-              />
-            )}
-          </>
+      {/* Área Central de Leitura com dimensões absolutas */}
+      <main className="absolute inset-0 pt-14 pb-14 overflow-hidden">
+        {initialBook.type === "epub" ? (
+          <EpubViewer
+            data={initialBook.data}
+            settings={settings}
+            bookKey={initialBook.id}
+            initialLocation={initialBook.lastLocation}
+            renditionRef={renditionRef}
+            onPageUpdate={(page, total, percent, cfi) => handleProgressPersist(page, total, percent, cfi)}
+            onToggleControls={() => {
+              setShowControls((p) => !p);
+              setShowAaPanel(false);
+            }}
+          />
         ) : (
-          <div className="h-full flex flex-col items-center justify-center gap-4 p-6 text-center">
-            <BookOpen className="w-16 h-16 opacity-30 stroke-[1.5]" />
-            <h2 className="text-xl font-medium">Nenhum livro aberto</h2>
-            <p className="text-sm opacity-60 max-w-sm">
-              Carregue um arquivo <strong>.epub</strong> para personalização total de fontes ou um <strong>.pdf</strong> para leitura direta.
-            </p>
-            <label className="mt-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium cursor-pointer hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-500/20">
-              Escolher Livro
-              <input type="file" accept=".epub,.pdf" className="hidden" onChange={handleFileUpload} />
-            </label>
-          </div>
+          <PdfViewer
+            data={initialBook.data}
+            theme={settings.theme}
+            currentPage={currentPage}
+            onPageCountChange={(total) => {
+              setTotalPages(total);
+              const percent = Math.round((currentPage / Math.max(1, total)) * 100);
+              handleProgressPersist(currentPage, total, percent, currentPage);
+            }}
+          />
         )}
       </main>
 
-      {/* Barra Inferior de Navegação */}
-      {currentFile && (
-        <footer
-          className={`fixed bottom-0 inset-x-0 h-12 backdrop-blur-md bg-opacity-80 border-t border-black/5 dark:border-white/5 flex items-center justify-between px-6 z-40 transition-transform duration-300 ${
-            showControls ? "translate-y-0" : "translate-y-full"
-          }`}
-        >
-          <button onClick={prevPage} className="p-2 hover:opacity-70 active:scale-90">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
+      {/* Barra Inferior com Progresso Preciso */}
+      <footer
+        className={`fixed bottom-0 inset-x-0 h-14 backdrop-blur-md bg-opacity-85 border-t border-black/5 dark:border-white/10 flex items-center justify-between px-6 z-40 transition-transform duration-300 ${
+          showControls ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <button onClick={prevPage} className="p-2 hover:opacity-70 active:scale-90 cursor-pointer" title="Anterior">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
 
-          {currentFile.type === "pdf" && (
-            <span className="text-xs opacity-70 font-mono">
-              Página {pdfPage} de {pdfTotalPages}
-            </span>
-          )}
+        {/* Estatísticas de leitura em tempo real */}
+        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-4 text-xs font-mono text-center">
+          <span className="font-bold">
+            Pág. {currentPage} de {totalPages} ({progressPercent}%)
+          </span>
+          <span className="text-[11px] opacity-70">
+            {pagesRemaining === 0 ? "Livro concluído! 🎉" : `Faltam ${pagesRemaining} páginas`}
+          </span>
+        </div>
 
-          {currentFile.type === "epub" && (
-            <span className="text-xs opacity-50 flex items-center gap-1">
-              <Highlighter className="w-3.5 h-3.5" /> Selecione qualquer texto para marcar
-            </span>
-          )}
-
-          <button onClick={nextPage} className="p-2 hover:opacity-70 active:scale-90">
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </footer>
-      )}
+        <button onClick={nextPage} className="p-2 hover:opacity-70 active:scale-90 cursor-pointer" title="Próxima">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </footer>
     </div>
   );
 }
